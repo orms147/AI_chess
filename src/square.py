@@ -1,9 +1,15 @@
 class Square:
 
+  ALPHACOLS = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
+
   def __init__(self, row, col, piece=None):
     self.row = row
     self.col = col
     self.piece = piece
+    self.alphacol = self.ALPHACOLS[col]
+
+  def __eq__(self, other):
+    return self.row == other.row and self.col == other.col
 
   def has_piece(self):
     return self.piece !=None  #return true if not None
@@ -31,5 +37,6 @@ class Square:
         return False
     return True
   
-#s = Square()
-print(Square.in_range(2, 2, 5, 3))
+  def get_alphacol(self, col):
+    ALPHACOLS = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
+    return ALPHACOLS[col]

@@ -3,13 +3,22 @@ import pygame
 from const import *
 from board import Board
 from dragger import Dragger
+from square import Square
+from config import Config
 
 class Game:
 
   def __init__(self):
+
+
+
+    
     #set default
+    self.next_player = 'white'
+    self.hovered_sqr = None
     self.board = Board()
     self.dragger = Dragger()
+    self.config = Config()
 
   #Show back ground methods
   def show_bg(self, surface):
@@ -52,3 +61,47 @@ class Game:
         rect = (move.final.col * SQSIZE, move.final.row * SQSIZE, SQSIZE, SQSIZE)
         #blit
         pygame.draw.rect(surface, color, rect)
+
+  def show_last_move(self, surface):
+    theme = self.config.theme
+
+    if self.board.last_move:
+        initial = self.board.last_move.initial
+        final = self.board.last_move.final
+
+        for pos in [initial, final]:
+            # color
+            color = theme.trace.light if (pos.row + pos.col) % 2 == 0 else theme.trace.dark
+            # rect
+            rect = (pos.col * SQSIZE, pos.row * SQSIZE, SQSIZE, SQSIZE)
+            # blit
+            pygame.draw.rect(surface, color, rect)
+
+  def show_hover(self, surface):
+      if self.hovered_sqr:
+          # color
+          color = (180, 180, 180)
+          # rect
+          rect = (self.hovered_sqr.col * SQSIZE, self.hovered_sqr.row * SQSIZE, SQSIZE, SQSIZE)
+          # blit
+          pygame.draw.rect(surface, color, rect, width=3)
+
+  # other methods
+
+  def next_turn(self):
+      self.next_player = 'white' if self.next_player == 'black' else 'black'
+
+  def set_hover(self, row, col):
+      self.hovered_sqr = self.board.squares[row][col]
+
+  def change_theme(self):
+      self.config.change_theme()
+
+  def play_sound(self, captured=False):
+      if captured:
+          self.config.capture_sound.play()
+      else:
+          self.config.move_sound.play()
+
+  def reset(self):
+      self.__init__()
