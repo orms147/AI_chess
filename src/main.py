@@ -58,10 +58,12 @@ class Main:
 
                 #mouse motion event
                 elif event.type == pygame.MOUSEMOTION:
-
                     motion_row = int(event.pos[1] // SQSIZE)
                     motion_col = int(event.pos[0] // SQSIZE)
-                    game.set_hover(motion_row, motion_col)
+                    
+                    # Check limit of board ?
+                    if 0 <= motion_row < 8 and 0 <= motion_col < 8:
+                        game.set_hover(motion_row, motion_col)
 
                     if dragger.dragging:
                         dragger.update_mouse(event.pos)
@@ -74,35 +76,35 @@ class Main:
 
                 #click up event
                 elif event.type == pygame.MOUSEBUTTONUP:
-
                     if dragger.dragging:
                         dragger.update_mouse(event.pos)
                         released_row = int(dragger.mouseY // SQSIZE)
                         released_col = int(dragger.mouseX // SQSIZE)
 
+                        # Thêm kiểm tra giới hạn bàn cờ
+                        if 0 <= released_row < 8 and 0 <= released_col < 8:
+                            # create possible move
+                            initial = Square(dragger.initial_row, dragger.initial_col)
+                            final = Square(released_row, released_col)
+                            move = Move(initial, final)
 
-                        # create possible move
-                        initial = Square(dragger.initial_row, dragger.initial_col)
-                        final = Square(released_row, released_col)
-                        move = Move(initial, final)
+                            # valid move ?
+                            if board.valid_move(dragger.piece, move) and dragger.piece.color == game.next_player:
+                                # normal capture
+                                captured = board.squares[released_row][released_col].has_piece()
+                                board.move(dragger.piece, move)
 
-                        # valid move ?
-                        if board.valid_move(dragger.piece, move) and dragger.piece.color == game.next_player:
-                            # normal capture
-                            captured = board.squares[released_row][released_col].has_piece()
-                            board.move(dragger.piece, move)
+                                board.set_true_en_passant(dragger.piece)                            
 
-                            board.set_true_en_passant(dragger.piece)                            
+                                # sounds
+                                game.play_sound(captured)
+                                # show methodss
+                                game.show_bg(screen)
+                                game.show_last_move(screen)
+                                game.show_pieces(screen)
 
-                            # sounds
-                            game.play_sound(captured)
-                            # show methodss
-                            game.show_bg(screen)
-                            game.show_last_move(screen)
-                            game.show_pieces(screen)
-
-                            # next turn
-                            game.next_turn()
+                                # next turn
+                                game.next_turn()
 
                     dragger.undrag_piece()
 
