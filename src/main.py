@@ -16,7 +16,6 @@ class Main:
         pygame.display.set_caption('Chess')
         self.game = Game()
 
-
     def mainloop(self):
         
         #set default name :
