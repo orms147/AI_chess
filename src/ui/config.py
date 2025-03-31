@@ -1,8 +1,11 @@
 import pygame
+import sys
 import os
 
-from sound import Sound
-from theme import Theme
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.ui.sound import Sound
+from src.ui.theme import Theme
 
 class Config:
 

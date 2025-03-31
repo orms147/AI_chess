@@ -1,6 +1,9 @@
+import sys
 import os
 
-from const import *
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.core.const import *
 
 class Piece:
 

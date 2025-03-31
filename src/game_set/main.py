@@ -1,12 +1,15 @@
 import pygame
+import copy  # Import copy module for deepcopy
 import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 #import class
-from const import *
-from game import Game
-from move import Move
-from square import Square
-import copy  # Import copy module for deepcopy
+from src.core.const import *
+from src.game_set.game import Game
+from src.core.move import Move
+from src.core.square import Square
 
 class Main:
 

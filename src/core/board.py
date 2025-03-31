@@ -1,7 +1,12 @@
-from const import *
-from square import Square
-from piece import *
-from move import Move
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.core.const import *
+from src.core.square import Square
+from src.core.piece import *
+from src.core.move import Move
 
 import copy
 

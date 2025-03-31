@@ -1,7 +1,11 @@
 import pygame
 import sys
-from const import *
-from game import Game  # Import Game class to use its show_bg method
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.core.const import *
+from src.game_set.game import Game  # Import Game class to use its show_bg method
 
 class MainMenu:
     def __init__(self):

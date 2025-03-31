@@ -1,10 +1,14 @@
 import pygame
+import sys
+import os
 
-from const import *
-from board import Board
-from dragger import Dragger
-from square import Square
-from config import Config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.core.const import *
+from src.core.board import Board
+from src.ui.dragger import Dragger
+from src.core.square import Square
+from src.ui.config import Config
 
 class Game:
 
