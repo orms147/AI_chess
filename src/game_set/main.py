@@ -108,6 +108,15 @@ class Main:
 
                                 # next turn
                                 game.next_turn()
+                                
+                                # Thêm kiểm tra chiếu hết sau mỗi lượt đi
+                                current_player = game.next_player
+                                if board.is_checkmate(current_player):
+                                    winner = 'white' if current_player == 'black' else 'black'
+                                    return_to_menu = self.show_game_over(winner)
+                                    if return_to_menu:
+                                        running = False
+                                        return  # Return to menu
 
                     dragger.undrag_piece()
 
@@ -133,8 +142,163 @@ class Main:
 
             pygame.display.update()
 
+    def show_game_over(self, winner):
+        """Hiển thị thông báo chiếu hết và nút quay về menu"""
+        screen = self.screen
+        game = self.game
+        
+        # Tạo overlay mờ
+        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))  # RGBA: Đen với 70% độ mờ
+        screen.blit(overlay, (0, 0))
+        
+        # Tạo font
+        font_large = pygame.font.SysFont('Arial', 40, bold=True)
+        font_medium = pygame.font.SysFont('Arial', 30, bold=True)
+        
+        # Vẽ khung thông báo
+        message_box = pygame.Rect(WIDTH // 4, HEIGHT // 4, WIDTH // 2, HEIGHT // 2)
+        pygame.draw.rect(screen, (50, 50, 50), message_box, border_radius=10)
+        pygame.draw.rect(screen, (200, 200, 200), message_box, 2, border_radius=10)
+        
+        # Vẽ text thông báo
+        text_color = (234, 234, 200)
+        title_text = f"{winner.capitalize()} Wins!"
+        title_surface = font_large.render(title_text, True, text_color)
+        title_rect = title_surface.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+        screen.blit(title_surface, title_rect)
+        
+        message_text = "Checkmate!"
+        message_surface = font_medium.render(message_text, True, text_color)
+        message_rect = message_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(message_surface, message_rect)
+        
+        # Vẽ nút trở về menu
+        button_width, button_height = 200, 50
+        button_rect = pygame.Rect((WIDTH - button_width) // 2, 
+                                HEIGHT // 2 + 60,
+                                button_width, button_height)
+        button_color = (119, 154, 88)
+        pygame.draw.rect(screen, button_color, button_rect, border_radius=10)
+        pygame.draw.rect(screen, text_color, button_rect, 2, border_radius=10)
+        
+        # Vẽ text nút
+        button_text = "Return to Menu"
+        button_surface = font_medium.render(button_text, True, text_color)
+        button_text_rect = button_surface.get_rect(center=button_rect.center)
+        screen.blit(button_surface, button_text_rect)
+        
+        pygame.display.update()
+        
+        # Đợi cho đến khi người chơi nhấn nút
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if button_rect.collidepoint(event.pos):
+                        waiting = False
+                        return True  # Trở về menu
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        waiting = False
+                        return True  # Trở về menu
+        
+        return False
 
 if __name__ == "__main__":
     from menu import MainMenu
     menu = MainMenu()
     menu.run()
+
+def show_game_over(self, winner):
+    """Hiển thị thông báo chiếu hết và nút quay về menu"""
+    screen = self.screen
+    game = self.game
+    
+    # Tạo overlay mờ
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))  # RGBA: Đen với 70% độ mờ
+    screen.blit(overlay, (0, 0))
+    
+    # Tạo font
+    font_large = pygame.font.SysFont('Arial', 40, bold=True)
+    font_medium = pygame.font.SysFont('Arial', 30, bold=True)
+    
+    # Vẽ khung thông báo
+    message_box = pygame.Rect(WIDTH // 4, HEIGHT // 4, WIDTH // 2, HEIGHT // 2)
+    pygame.draw.rect(screen, (50, 50, 50), message_box, border_radius=10)
+    pygame.draw.rect(screen, (200, 200, 200), message_box, 2, border_radius=10)
+    
+    # Vẽ text thông báo
+    text_color = (234, 234, 200)
+    title_text = f"{winner.capitalize()} Wins!"
+    title_surface = font_large.render(title_text, True, text_color)
+    title_rect = title_surface.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+    screen.blit(title_surface, title_rect)
+    
+    message_text = "Checkmate!"
+    message_surface = font_medium.render(message_text, True, text_color)
+    message_rect = message_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(message_surface, message_rect)
+    
+    # Vẽ nút trở về menu
+    button_width, button_height = 200, 50
+    button_rect = pygame.Rect((WIDTH - button_width) // 2, 
+                             HEIGHT // 2 + 60,
+                             button_width, button_height)
+    button_color = (119, 154, 88)
+    pygame.draw.rect(screen, button_color, button_rect, border_radius=10)
+    pygame.draw.rect(screen, text_color, button_rect, 2, border_radius=10)
+    
+    # Vẽ text nút
+    button_text = "Return to Menu"
+    button_surface = font_medium.render(button_text, True, text_color)
+    button_text_rect = button_surface.get_rect(center=button_rect.center)
+    screen.blit(button_surface, button_text_rect)
+    
+    pygame.display.update()
+    
+    # Đợi cho đến khi người chơi nhấn nút
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if button_rect.collidepoint(event.pos):
+                    waiting = False
+                    return True  # Trở về menu
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    waiting = False
+                    return True  # Trở về menu
+    
+    return False
+
+# Thêm phương thức này vào cuối class Board trong file board.py
+def is_checkmate(self, color):
+    """
+    Kiểm tra xem vua có màu cụ thể có bị chiếu hết không
+    """
+    # Đầu tiên kiểm tra xem vua có đang bị chiếu không
+    if not self.is_king_checked(color):
+        return False
+    
+    # Kiểm tra xem có nước đi nào có thể giải quyết tình trạng chiếu không
+    for row in range(ROWS):
+        for col in range(COLS):
+            if self.squares[row][col].has_piece():
+                piece = self.squares[row][col].piece
+                if piece.color == color:
+                    # Tính toán các nước đi hợp lệ cho mỗi quân cờ
+                    self.calc_moves(piece, row, col)
+                    # Nếu có ít nhất một nước đi hợp lệ, thì không phải chiếu hết
+                    if len(piece.moves) > 0:
+                        return False
+    
+    # Nếu không tìm thấy nước đi nào để thoát khỏi tình trạng chiếu, thì đó là chiếu hết
+    return True

@@ -546,6 +546,29 @@ class Board:
     
     return False
   
+  def is_checkmate(self, color):
+    """
+    Kiểm tra xem vua có màu cụ thể có bị chiếu hết không
+    """
+    # Đầu tiên kiểm tra xem vua có đang bị chiếu không
+    if not self.is_king_checked(color):
+        return False
+    
+    # Kiểm tra xem có nước đi nào có thể giải quyết tình trạng chiếu không
+    for row in range(ROWS):
+        for col in range(COLS):
+            if self.squares[row][col].has_piece():
+                piece = self.squares[row][col].piece
+                if piece.color == color:
+                    # Tính toán các nước đi hợp lệ cho mỗi quân cờ
+                    self.calc_moves(piece, row, col)
+                    # Nếu có ít nhất một nước đi hợp lệ, thì không phải chiếu hết
+                    if len(piece.moves) > 0:
+                        return False
+    
+    # Nếu không tìm thấy nước đi nào để thoát khỏi tình trạng chiếu, thì đó là chiếu hết
+    return True
+  
   def _create(self):
     for row in range(ROWS):
       for col in range(COLS):
