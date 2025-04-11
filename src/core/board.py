@@ -98,6 +98,8 @@ class Board:
     return move in piece.moves
 
   def calc_moves(self, piece, row, col, bool=True):
+    #clear
+    piece.clear_moves()
 
     # Caculate move of piece
 
@@ -308,7 +310,6 @@ class Board:
                       if not self.in_check(piece, move):
                           # append new move
                           piece.add_move(move)
-                      else: break
                   else:
                       # append new move
                       piece.add_move(move)
@@ -421,6 +422,130 @@ class Board:
 
     if isinstance(piece, King): king()
 
+    if bool and not isinstance(piece, King):
+        # Kiểm tra xem vua có đang bị chiếu không
+        king_row, king_col = None, None
+        for r in range(ROWS):
+            for c in range(COLS):
+                if self.squares[r][c].has_piece():
+                    p = self.squares[r][c].piece
+                    if isinstance(p, King) and p.color == piece.color:
+                        king_row, king_col = r, c
+                        break
+            if king_row is not None:
+                break
+        
+        # Nếu vua đang bị chiếu
+        if king_row is not None:
+            king = self.squares[king_row][king_col].piece
+            # Kiểm tra xem vua có đang bị chiếu không
+            enemy_color = 'black' if piece.color == 'white' else 'white'
+            is_checked = False
+            for r in range(ROWS):
+                for c in range(COLS):
+                    if self.squares[r][c].has_piece():
+                        p = self.squares[r][c].piece
+                        if p.color == enemy_color:
+                            # Tính toán các nước đi hợp lệ cho quân địch
+                            temp_piece = copy.deepcopy(p)
+                            temp_board = copy.deepcopy(self)
+                            temp_board.calc_moves(temp_piece, r, c, bool=False)
+                            for m in temp_piece.moves:
+                                if isinstance(self.squares[king_row][king_col].piece, King) and m.final.row == king_row and m.final.col == king_col:
+                                    is_checked = True
+                                    break
+                    if is_checked:
+                        break
+                if is_checked:
+                    break
+            
+            # Nếu vua đang bị chiếu, lọc các nước đi
+            if is_checked:
+                # Lưu trữ các nước đi hợp lệ
+                valid_moves = []
+                
+                # Kiểm tra từng nước đi có thể giải quyết tình trạng chiếu không
+                for move in piece.moves:
+                    # Thử nước đi trên bản sao của bàn cờ
+                    temp_piece = copy.deepcopy(piece)
+                    temp_board = copy.deepcopy(self)
+                    temp_board.move(temp_piece, move, testing=True)
+                    
+                    # Kiểm tra xem sau nước đi, vua có còn bị chiếu không
+                    still_checked = False
+                    for r in range(ROWS):
+                        for c in range(COLS):
+                            if temp_board.squares[r][c].has_piece():
+                                p = temp_board.squares[r][c].piece
+                                if p.color == enemy_color:
+                                    # Tính toán các nước đi hợp lệ cho quân địch
+                                    temp_board.calc_moves(p, r, c, bool=False)
+                                    for m in p.moves:
+                                        # Tìm vị trí vua sau nước đi
+                                        temp_king_row, temp_king_col = king_row, king_col
+                                        for kr in range(ROWS):
+                                            for kc in range(COLS):
+                                                if temp_board.squares[kr][kc].has_piece():
+                                                    pk = temp_board.squares[kr][kc].piece
+                                                    if isinstance(pk, King) and pk.color == piece.color:
+                                                        temp_king_row, temp_king_col = kr, kc
+                                                        break
+                                            if temp_king_row != king_row or temp_king_col != king_col:
+                                                break
+                                        
+                                        if m.final.row == temp_king_row and m.final.col == temp_king_col:
+                                            still_checked = True
+                                            break
+                                    if still_checked:
+                                        break
+                            if still_checked:
+                                break
+                        if still_checked:
+                            break
+                    
+                    # Nếu nước đi giải quyết được tình trạng chiếu
+                    if not still_checked:
+                        valid_moves.append(move)
+                
+                # Thay thế danh sách nước đi bằng các nước đi hợp lệ
+                piece.moves = valid_moves
+                
+  def is_king_checked(self, color):
+    """
+    Kiểm tra xem vua có màu cụ thể có đang bị chiếu hay không
+    """
+    king_position = None
+    
+    # Tìm vị trí của vua
+    for row in range(ROWS):
+        for col in range(COLS):
+            if self.squares[row][col].has_piece():
+                piece = self.squares[row][col].piece
+                if isinstance(piece, King) and piece.color == color:
+                    king_position = (row, col)
+                    break
+        if king_position:
+            break
+    
+    # Nếu không tìm thấy vua (không nên xảy ra trong trò chơi cờ vua bình thường)
+    if not king_position:
+        return False
+    
+    # Kiểm tra xem có quân địch nào có thể tấn công vua không
+    enemy_color = 'black' if color == 'white' else 'white'
+    for row in range(ROWS):
+        for col in range(COLS):
+            if self.squares[row][col].has_piece():
+                piece = self.squares[row][col].piece
+                if piece.color == enemy_color:
+                    # Tính toán các nước đi hợp lệ cho quân địch
+                    self.calc_moves(piece, row, col, bool=False)
+                    for move in piece.moves:
+                        if move.final.row == king_position[0] and move.final.col == king_position[1]:
+                            return True
+    
+    return False
+  
   def _create(self):
     for row in range(ROWS):
       for col in range(COLS):
