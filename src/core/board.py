@@ -250,16 +250,14 @@ class Board:
             # Create new move
             initial = Square(row, col, piece.color)
             final = Square(possible_move_row, possible_move_col, piece.color)
-            #
             move = Move(initial, final)
             # check potencial checks
             if bool:
                 if not self.in_check(piece, move):
-                    # append new move
                     piece.add_move(move)
-                else: break
+                else:
+                    pass
             else:
-                # append new move
                 piece.add_move(move)
 
     def straight_line_moves(incrs):
@@ -417,7 +415,10 @@ class Board:
 
 
     if isinstance(piece, Pawn): pawn()                #if it's Pawn  ( == piece.name == "Pawn")
-    if isinstance(piece, Knight): knight()
+    if isinstance(piece, Knight):
+        knight()
+        # Debug: In ra các nước đi của mã trước khi lọc khi vua bị chiếu
+        # print(f"[DEBUG] Knight moves before filter (row={row}, col={col}): {[str(m) for m in piece.moves]}")
 
     if isinstance(piece, Bishop): 
        straight_line_moves ([
@@ -534,6 +535,10 @@ class Board:
                     if not still_checked:
                         valid_moves.append(move)
                 
+                # Debug: In ra các nước đi của mã sau khi lọc khi vua bị chiếu
+                if isinstance(piece, Knight):
+                    # print(f"[DEBUG] Knight moves after filter (row={row}, col={col}): {[str(m) for m in valid_moves]}")
+                    pass
                 # Thay thế danh sách nước đi bằng các nước đi hợp lệ
                 piece.moves = valid_moves
                 
