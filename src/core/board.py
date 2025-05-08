@@ -20,53 +20,86 @@ class Board:
     self._add_pieces('black')
 
   def move(self, piece, move, testing=False):
-        initial = move.initial
-        final = move.final
+    initial = move.initial
+    final = move.final
 
-        en_passant_empty = self.squares[final.row][final.col].isempty()
+    en_passant_empty = self.squares[final.row][final.col].isempty()
 
-        # console board move update
-        self.squares[int(initial.row)][int(initial.col)].piece = None
-        self.squares[int(final.row)][int(final.col)].piece = piece
+    # console board move update
+    self.squares[int(initial.row)][int(initial.col)].piece = None
+    self.squares[int(final.row)][int(final.col)].piece = piece
 
-        if isinstance(piece, Pawn):
-            # en passant capture
+    if isinstance(piece, Pawn):
+        # en passant capture
+        diff = final.col - initial.col
+        if diff != 0 and en_passant_empty:
+            # console board move update
+            self.squares[initial.row][initial.col + diff].piece = None
+            self.squares[final.row][final.col].piece = piece
+            if not testing:
+                sound = Sound(
+                    os.path.join('assets/sounds/capture.wav'))
+                sound.play()
+        
+        # pawn promotion
+        else:
+            self.check_promotion(piece, final)
+
+    # king castling
+    if isinstance(piece, King):
+        if self.castling(initial, final) and not testing:
             diff = final.col - initial.col
-            if diff != 0 and en_passant_empty:
-                # console board move update
-                self.squares[initial.row][initial.col + diff].piece = None
-                self.squares[final.row][final.col].piece = piece
-                if not testing:
-                    sound = Sound(
-                        os.path.join('assets/sounds/capture.wav'))
-                    sound.play()
-            
-            # pawn promotion
-            else:
-                self.check_promotion(piece, final)
+            rook_col = 0 if diff < 0 else 7
+            rook = self.squares[initial.row][rook_col].piece
+            new_rook_col = 3 if diff < 0 else 5
+            self.squares[initial.row][rook_col].piece = None
+            self.squares[initial.row][new_rook_col].piece = rook
 
-        # king castling
-        if isinstance(piece, King):
-            if self.castling(initial, final) and not testing:
-                diff = final.col - initial.col
-                rook = piece.left_rook if (diff < 0) else piece.right_rook
-                self.move(rook, rook.moves[-1])
+    # move
+    piece.moved = True
 
-        # move
-        piece.moved = True
+    # clear valid moves
+    piece.clear_moves()
 
-        # clear valid moves
-        piece.clear_moves()
-
-        # set last move
-        self.last_move = move
+    # set last move
+    self.last_move = move
 
   def check_promotion(self, piece, final):
     if final.row == 0 or final.row == 7:
         self.squares[final.row][final.col].piece = Queen(piece.color)
 
   def castling(self, initial, final):
-      return abs(initial.col - final.col) == 2
+    # Check if it's a castling move
+    if abs(initial.col - final.col) != 2:
+        return False
+        
+    # Get the king and determine which side we're castling
+    king = self.squares[initial.row][initial.col].piece
+    if not isinstance(king, King) or king.moved:
+        return False
+        
+    # Determine which rook we're using
+    is_queenside = final.col < initial.col
+    rook_col = 0 if is_queenside else 7
+    rook = self.squares[initial.row][rook_col].piece
+    
+    # Check if rook exists and hasn't moved
+    if not isinstance(rook, Rook) or rook.moved:
+        return False
+        
+    # Check if path is clear
+    start_col = min(initial.col, rook_col) + 1
+    end_col = max(initial.col, rook_col)
+    for col in range(start_col, end_col):
+        if not self.squares[initial.row][col].isempty():
+            return False
+            
+    # Check if king is in check or would move through check
+    for col in range(initial.col, final.col + (1 if is_queenside else -1), -1 if is_queenside else 1):
+        if self.is_king_checked(king.color):
+            return False
+            
+    return True
 
   def set_true_en_passant(self, piece):
     if not isinstance(piece, Pawn):
@@ -79,19 +112,37 @@ class Board:
     piece.en_passant = True
 
   def in_check(self, piece, move):
-    temp_piece = copy.deepcopy(piece)
+    # Create a temporary board and piece for testing the move
     temp_board = copy.deepcopy(self)
+    temp_piece = copy.deepcopy(piece)
+    
+    # Make the move on the temporary board
     temp_board.move(temp_piece, move, testing=True)
     
+    # Find the king's position
+    king_pos = None
     for row in range(ROWS):
-      for col in range(COLS):
-        if temp_board.squares[row][col].has_enemy_piece(piece.color):
-          p = temp_board.squares[row][col].piece
-          temp_board.calc_moves(p, row, col, bool=False)
-          for m in p.moves:
-            if isinstance(m.final.piece, King):
-              return True
-    
+        for col in range(COLS):
+            square = temp_board.squares[row][col]
+            if square.has_teammate(piece.color) and isinstance(square.piece, King):
+                king_pos = (row, col)
+                break
+        if king_pos:
+            break
+            
+    if not king_pos:
+        return False
+        
+    # Check if any enemy piece can capture the king
+    for row in range(ROWS):
+        for col in range(COLS):
+            square = temp_board.squares[row][col]
+            if square.has_enemy_piece(piece.color):
+                enemy_piece = square.piece
+                temp_board.calc_moves(enemy_piece, row, col, bool=False)
+                for move in enemy_piece.moves:
+                    if move.final.row == king_pos[0] and move.final.col == king_pos[1]:
+                        return True
     return False
 
   def valid_move(self, piece, move):
@@ -106,10 +157,7 @@ class Board:
     # Move method 
     def pawn():
       piece = self.squares[row][col].piece
-      if piece.color == 'black':
-          if row != 1: piece.moved = True
-      if piece.color == 'white':
-          if row != 6: piece.moved = True
+      
       # steps can move ( = 1 if moved)
       steps = 1 if piece.moved else 2
 
@@ -123,7 +171,7 @@ class Board:
               if self.squares[move_row][col].isempty(): # If don't have any piece
                   # new move
                   initial = Square(row, col)
-                  final = Square(move_row, col, self.squares[move_row][col].piece)
+                  final = Square(move_row, col)
                   move = Move(initial, final)
                   # check potencial checks
                   if bool:
@@ -138,7 +186,7 @@ class Board:
               #not in range
           else: break
       
-      # diagonal
+      # diagonal captures
       move_cols = [col - 1, col + 1]  # 2 col: right and left to move
       move_row = row + piece.dir
       for move_col in move_cols:
@@ -146,7 +194,7 @@ class Board:
               if self.squares[move_row][move_col].has_enemy_piece(piece.color):
                   # new move
                   initial = Square(row, col)
-                  final = Square(move_row, move_col, self.squares[move_row][move_col].piece)
+                  final = Square(move_row, move_col)
                   move = Move(initial, final)
                   # check potencial checks
                   if bool:
@@ -160,36 +208,16 @@ class Board:
       # en passant moves
       r = 3 if piece.color == 'white' else 4
       fr = 2 if piece.color == 'white' else 5
-      # left en pessant
-      if Square.in_range(col-1) and row == r:
-          if self.squares[row][col-1].has_enemy_piece(piece.color):
-              p = self.squares[row][col-1].piece
-              if isinstance(p, Pawn):
-                  if p.en_passant:
-                      # create initial and final move squares
-                      initial = Square(row, col)
-                      final = Square(fr, col-1, p)
-                      # create a new move
-                      move = Move(initial, final)
-                      
-                      # check potencial checks
-                      if bool:
-                          if not self.in_check(piece, move):
-                              # append new move
-                              piece.add_move(move)
-                      else:
-                          # append new move
-                          piece.add_move(move)
       
-      # right en pessant
-      if Square.in_range(col+1) and row == r:
-          if self.squares[row][col+1].has_enemy_piece(piece.color):
-              p = self.squares[row][col+1].piece
-              if isinstance(p, Pawn):
-                  if p.en_passant:
+      # Check for en passant captures
+      for move_col in [col-1, col+1]:
+          if Square.in_range(move_col) and row == r:
+              if self.squares[row][move_col].has_enemy_piece(piece.color):
+                  p = self.squares[row][move_col].piece
+                  if isinstance(p, Pawn) and p.en_passant:
                       # create initial and final move squares
                       initial = Square(row, col)
-                      final = Square(fr, col+1, p)
+                      final = Square(fr, move_col)
                       # create a new move
                       move = Move(initial, final)
                       
@@ -201,7 +229,6 @@ class Board:
                       else:
                           # append new move
                           piece.add_move(move)
-
 
     def knight():
       possible_moves = {
@@ -511,62 +538,46 @@ class Board:
                 piece.moves = valid_moves
                 
   def is_king_checked(self, color):
-    """
-    Kiểm tra xem vua có màu cụ thể có đang bị chiếu hay không
-    """
-    king_position = None
-    
-    # Tìm vị trí của vua
+    # Find the king's position
+    king_pos = None
     for row in range(ROWS):
         for col in range(COLS):
-            if self.squares[row][col].has_piece():
-                piece = self.squares[row][col].piece
-                if isinstance(piece, King) and piece.color == color:
-                    king_position = (row, col)
-                    break
-        if king_position:
+            square = self.squares[row][col]
+            if square.has_teammate(color) and isinstance(square.piece, King):
+                king_pos = (row, col)
+                break
+        if king_pos:
             break
-    
-    # Nếu không tìm thấy vua (không nên xảy ra trong trò chơi cờ vua bình thường)
-    if not king_position:
+            
+    if not king_pos:
         return False
-    
-    # Kiểm tra xem có quân địch nào có thể tấn công vua không
-    enemy_color = 'black' if color == 'white' else 'white'
+        
+    # Check if any enemy piece can capture the king
     for row in range(ROWS):
         for col in range(COLS):
-            if self.squares[row][col].has_piece():
-                piece = self.squares[row][col].piece
-                if piece.color == enemy_color:
-                    # Tính toán các nước đi hợp lệ cho quân địch
-                    self.calc_moves(piece, row, col, bool=False)
-                    for move in piece.moves:
-                        if move.final.row == king_position[0] and move.final.col == king_position[1]:
-                            return True
-    
+            square = self.squares[row][col]
+            if square.has_enemy_piece(color):
+                enemy_piece = square.piece
+                self.calc_moves(enemy_piece, row, col, bool=False)
+                for move in enemy_piece.moves:
+                    if move.final.row == king_pos[0] and move.final.col == king_pos[1]:
+                        return True
     return False
   
   def is_checkmate(self, color):
-    """
-    Kiểm tra xem vua có màu cụ thể có bị chiếu hết không
-    """
-    # Đầu tiên kiểm tra xem vua có đang bị chiếu không
+    # First check if the king is in check
     if not self.is_king_checked(color):
         return False
-    
-    # Kiểm tra xem có nước đi nào có thể giải quyết tình trạng chiếu không
+        
+    # Try all possible moves for all pieces of the given color
     for row in range(ROWS):
         for col in range(COLS):
-            if self.squares[row][col].has_piece():
-                piece = self.squares[row][col].piece
-                if piece.color == color:
-                    # Tính toán các nước đi hợp lệ cho mỗi quân cờ
-                    self.calc_moves(piece, row, col)
-                    # Nếu có ít nhất một nước đi hợp lệ, thì không phải chiếu hết
-                    if len(piece.moves) > 0:
-                        return False
-    
-    # Nếu không tìm thấy nước đi nào để thoát khỏi tình trạng chiếu, thì đó là chiếu hết
+            square = self.squares[row][col]
+            if square.has_teammate(color):
+                piece = square.piece
+                self.calc_moves(piece, row, col, bool=True)
+                if piece.moves:  # If there are any valid moves, it's not checkmate
+                    return False
     return True
   
   def _create(self):
